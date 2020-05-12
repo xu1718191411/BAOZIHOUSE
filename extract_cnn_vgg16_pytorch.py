@@ -1,11 +1,5 @@
-import torch
-import torch.nn as nn
 from torch.autograd import Variable
-import torchvision
-from torchvision import datasets, models, transforms
-
-import json
-import numpy as np
+from torchvision import models, transforms
 from PIL import Image
 
 class VGGNet:

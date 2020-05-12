@@ -1,16 +1,14 @@
-from extract_cnn_vgg16_pytorch import VGGNet
 import numpy as np
 import h5py
 
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+from extract_cnn_vgg16_pytorch import VGGNet
 
 h5f = h5py.File("./INDEX","r")
 features = h5f["dataset_1"][:]
 names = h5f["dataset_2"][:]
 h5f.close()
 
-query = "query2.jpg"
+query = "query.jpg"
 
 model = VGGNet()
 
