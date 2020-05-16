@@ -33,6 +33,7 @@ if __name__ == '__main__':
     epoch = 50
 
     for i in range(epoch):
+        print("epoch {}".format(i + 1))
         train_loss = 0
         test_loss = 0
         test_acc = 0
@@ -45,7 +46,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        print(train_loss)
+        print(train_loss/train_data_loader.__len__())
 
         for x, t in test_data_loader:
             x, t = x.to(device), t.to(device)
@@ -53,9 +54,11 @@ if __name__ == '__main__':
             preds = model(x)
             loss = criterion(preds, t)
             test_loss = test_loss + loss.item()
-            test_acc = test_acc + accuracy_score(t.tolist(),preds.argmax(dim=-1).tolist())
+            test_acc = test_acc + accuracy_score(t.tolist(), preds.argmax(dim=-1).tolist())
 
         test_loss = test_loss / len(test_data_loader)
         test_acc = test_acc / len(test_data_loader)
-        print("Epoch {}, valid cost {:.3f}, valid acc {:.3f}".format(test_loss,test_acc))
+        print("Epoch {}, valid cost {:.3f}, valid acc {:.3f}".format(i, test_loss, test_acc))
 
+
+        torch.save(model.state_dict(),"./trainning_result/epoch_{}.pth".format(i+1))
