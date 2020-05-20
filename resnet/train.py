@@ -8,27 +8,38 @@ import torchvision
 import torchvision.transforms as transforms
 from sklearn.metrics import accuracy_score
 
-from resnet.net import ResNet50
+from resnet.net import resnet50
 
 if __name__ == '__main__':
     np.random.seed(1234)
     torch.manual_seed(1234)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #
+    # root = os.path.join(os.path.dirname(__file__), '..', 'data', "fashion_minist")
+    # transform = transforms.Compose([transforms.ToTensor()])
+    #
+    # mnist_train = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=True)
+    #
+    # mnist_test = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=False)
+    #
+    # train_data_loader = dataloader.DataLoader(mnist_train, shuffle=True, batch_size=100)
+    # test_data_loader = dataloader.DataLoader(mnist_test, shuffle=True, batch_size=100)
 
-    root = os.path.join(os.path.dirname(__file__), '..', 'data', "fashion_minist")
+    path = os.path.dirname(__file__)
+    root = os.path.join(path, "..", "data", "cifar100")
     transform = transforms.Compose([transforms.ToTensor()])
 
-    mnist_train = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=True)
+    train_data_set = torchvision.datasets.CIFAR100(root=root, train=True, download=True, transform=transform)
 
-    mnist_test = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=False)
+    test_data_set = torchvision.datasets.CIFAR100(root=root, train=False, download=True, transform=transform)
 
-    train_data_loader = dataloader.DataLoader(mnist_train, shuffle=True, batch_size=100)
-    test_data_loader = dataloader.DataLoader(mnist_test, shuffle=True, batch_size=100)
+    train_data_loader = dataloader.DataLoader(train_data_set, shuffle=True, batch_size=100)
+    test_data_loader = dataloader.DataLoader(test_data_set, shuffle=True, batch_size=100)
 
-    model = ResNet50(10).to(device)
+    model = resnet50().to(device)
 
-    criterion = nn.NLLLoss()
-    optimizer = optimizers.Adam(model.parameters(), weight_decay=.01)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optimizers.SGD(model.parameters(), lr=1e-4)
 
     epoch = 50
 
@@ -54,7 +65,12 @@ if __name__ == '__main__':
             preds = model(x)
             loss = criterion(preds, t)
             test_loss = test_loss + loss.item()
-            test_acc = test_acc + accuracy_score(t.tolist(), preds.argmax(dim=-1).tolist())
+
+            a1 = torch.argmax(preds,dim=1)
+            # _,a1 = preds.max(dim=1)
+            s = a1.eq(t).sum()
+            # s = torch.sum(s)
+            test_acc += s
 
         test_loss = test_loss / len(test_data_loader)
         test_acc = test_acc / len(test_data_loader)

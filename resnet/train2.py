@@ -7,8 +7,8 @@ import torch.nn as nn
 from sklearn.metrics import accuracy_score
 
 model = torchvision.models.resnet50(
-    pretrained=True)  # if pretrained is False, the loss at first will be larger than 4.5
-
+    pretrained=True)
+torch.manual_seed(1)
 if __name__ == '__main__':
     print("main")
     path = os.path.dirname(__file__)
@@ -29,17 +29,8 @@ if __name__ == '__main__':
 
     model.fc = nn.Linear(in_features=2048, out_features=100, bias=True)
     model.cuda(device)
-    learning_param_names = ["fc.weight", "fc.bias"]
-    learning_params = []
-    for name, params in model.named_parameters():
-        print(name)
-        if name in learning_param_names:
-            params.requires_grad = True
-            learning_params.append(params)
-        else:
-            params.requires_grad = False
 
-    optimizer = torch.optim.SGD(learning_params, lr=0.01)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
 
     criterion = nn.CrossEntropyLoss()
     for i in range(epoch):
@@ -49,13 +40,11 @@ if __name__ == '__main__':
         for x, t in train_data_loader:
             x = x.to(device)
             t = t.to(device)
-
-            optimizer.zero_grad()
             model.train()
             output = model(x)
-
             loss = criterion(output, t)
             epoch_loss = epoch_loss + loss.item()
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
@@ -80,4 +69,5 @@ if __name__ == '__main__':
             score = accuracy_score(t, output)
             test_acc = test_acc + score
 
-        print("epoch {} loss: {} acc: {}".format((i+1),test_loss / test_data_loader.__len__(), test_acc / test_data_loader.__len__()))
+        print("epoch {} loss: {} acc: {}".format((i + 1), test_loss / test_data_loader.__len__(),
+                                                 test_acc / test_data_loader.__len__()))
