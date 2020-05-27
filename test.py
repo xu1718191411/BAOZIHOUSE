@@ -4,8 +4,8 @@ import skimage.io
 import skimage.transform
 
 
-def test_image_flip():
-    image = skimage.io.imread("./test.jpg")  # (H,W,C)
+def test_image_flip(path):
+    image = skimage.io.imread(path)  # (H,W,C)
 
     b = image.astype(np.float32) / 255.0
     skimage.io.imshow(b)
@@ -38,22 +38,20 @@ def test_annotation_flip():
     print(annotations)
 
 
-def test_normalization():
-    image = np.array([
-        [
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-        ],
-        [
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-        ],
-        [
-            [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-        ]
-    ])
+def test_normalization(path):
+    image = skimage.io.imread(path)  # (H,W,C)
+
+    image = image.astype(np.float32) / 255.0
+    skimage.io.imshow(image)
+    skimage.io.show()
+
+
     mean = np.array([[[0.485, 0.456, 0.406]]])
     std = np.array([[[0.229, 0.224, 0.225]]])
-    transformedImage = image.astype(np.float32) - mean / std
-    print(transformedImage)
+    transformedImage = (image.astype(np.float32) - mean) / std
+
+    skimage.io.imshow(transformedImage)
+    skimage.io.show()
 
 
 def test_resize(path):
@@ -93,3 +91,6 @@ def test_resize(path):
     skimage.io.show()
 
 test_resize("./test.jpg")
+
+# test_image_flip("./test.jpg")
+
