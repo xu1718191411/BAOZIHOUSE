@@ -1,17 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def generate_anchorbox(boxSize, scale, ratios):
-    print(boxSize)
-    print(scale)
-    print(ratios)
+PYRAMID_LEVEL = [3, 4, 5, 6, 7]
 
+TEST_SCALE = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
+TEST_RATIO = np.array([0.5, 1, 2])
+
+strides = [2 ** level for level in PYRAMID_LEVEL]
+boxSizeBaseSizes = [2 ** (level + 2) for level in PYRAMID_LEVEL]
+imageShape = (640, 832)
+
+def generate_anchorbox(boxSize, scale, ratios):
     prevBoxsScales = np.tile(scale, (2, len(scale))).T
     prevBoxsScales = prevBoxsScales * boxSize
-    print(prevBoxsScales)
 
     preBoxAreas = prevBoxsScales[:, 0] * prevBoxsScales[:, 1]
-    print(preBoxAreas)
 
     # w * h = area
     # w * w*ratio = area
@@ -30,14 +33,32 @@ def generate_anchorbox(boxSize, scale, ratios):
     return anchorBox
 
 
-PYRAMID_LEVEL = [3, 4, 5, 6, 7]
+def run_generate_anchorbox():
+    idx = 0
+    anchorBoxSizes = generate_anchorbox(boxSizeBaseSizes[idx], TEST_SCALE, TEST_RATIO)
 
-TEST_SCALE = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
-TEST_RATIO = np.array([0.5, 1, 2])
 
-strides = [2 ** level for level in PYRAMID_LEVEL]
-boxSizeBaseSizes = [2 ** (level + 2) for level in PYRAMID_LEVEL]
-imageShape = (640, 832)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    for box in anchorBoxSizes:
+        print(box)
+        x1 = box[0]
+        y1 = box[1]
+        x2 = box[2]
+        y2 = box[3]
+        cx = 0
+        cy = 0
+        width = x2 - x1
+        height = y2 - y1
+        plt.plot(cx, cy, "o")
+        rect = plt.Rectangle([x1, y1], width, height, fill=None)
+        ax.add_patch(rect)
+    plt.xlim(-imageShape[0]/(2**PYRAMID_LEVEL[idx]), imageShape[0]/(2**PYRAMID_LEVEL[idx]))
+    plt.ylim(-imageShape[1]/(2**PYRAMID_LEVEL[idx]), imageShape[1]/(2**PYRAMID_LEVEL[idx]))
+    plt.show()
+
+# run_generate_anchorbox()
 
 
 def shift_boxes(positionFixedAnchorBoxes, imageShape, stride, boxSizeBaseSize):
@@ -65,43 +86,51 @@ def shift_boxes(positionFixedAnchorBoxes, imageShape, stride, boxSizeBaseSize):
     return m[:, :, :2], res
 
 
-idx = 0
-position_fixed_anchor_boxes = generate_anchorbox(boxSizeBaseSizes[idx], TEST_SCALE, TEST_RATIO)
-centerPositions, transformed_anchor_boxes = shift_boxes(position_fixed_anchor_boxes, imageShape, strides[idx],
-                                                        boxSizeBaseSizes[idx])
+def run_shift_boxes():
+    idx = 4
+    position_fixed_anchor_boxes = generate_anchorbox(boxSizeBaseSizes[idx], TEST_SCALE, TEST_RATIO)
+    centerPositions, transformed_anchor_boxes = shift_boxes(position_fixed_anchor_boxes, imageShape, strides[idx],
+                                                            boxSizeBaseSizes[idx])
 
-x = centerPositions[:, :, 0].ravel()
-y = centerPositions[:, :, 1].ravel()
-plt.plot(x, y, "o", markersize=0.3, markerfacecolor='black')
-plt.show()
+    x = centerPositions[:, :, 0].ravel()
+    y = centerPositions[:, :, 1].ravel()
+    plt.plot(x, y, "o", markersize=0.3, markerfacecolor='black')
+    plt.show()
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+    fig = plt.figure()
+    x = centerPositions[:, :, 0].ravel()
+    y = centerPositions[:, :, 1].ravel()
+    plt.plot(x, y, "o", markersize=0.3, markerfacecolor='black')
 
-totalFeatureBoxNum = centerPositions.shape[0]
-testPoint1 = int(totalFeatureBoxNum*(0.056))
-testPoint2 = int(totalFeatureBoxNum*(0.257))
-testPoint3 = int(totalFeatureBoxNum*(0.395))
-testPoint4 = int(totalFeatureBoxNum*(0.689))
-testPoint5 = int(totalFeatureBoxNum*(0.903))
-sample_anchor_points = [testPoint1,testPoint2,testPoint3,testPoint4,testPoint5]
+    ax = fig.add_subplot(111)
 
-for sample_point_index in sample_anchor_points:
-    for i in range(9):
-        x1 = transformed_anchor_boxes[sample_point_index][i][0]
-        y1 = transformed_anchor_boxes[sample_point_index][i][1]
-        x2 = transformed_anchor_boxes[sample_point_index][i][2]
-        y2 = transformed_anchor_boxes[sample_point_index][i][3]
-        center = centerPositions[sample_point_index]
-        cx = center.ravel()[0]
-        cy = center.ravel()[1]
-        width = x2 - x1
-        height = y2 - y1
+    totalFeatureBoxNum = centerPositions.shape[0]
+    testPoint1 = int(totalFeatureBoxNum*(0.056))
+    testPoint2 = int(totalFeatureBoxNum*(0.257))
+    testPoint3 = int(totalFeatureBoxNum*(0.395))
+    testPoint4 = int(totalFeatureBoxNum*(0.689))
+    testPoint5 = int(totalFeatureBoxNum*(0.903))
+    sample_anchor_points = [testPoint1,testPoint2,testPoint3,testPoint4,testPoint5]
 
-        plt.plot(cx, cy, "o")
-        rect = plt.Rectangle([x1, y1], width, height, fill=None)
-        ax.add_patch(rect)
+    for sample_point_index in sample_anchor_points:
+        for i in range(9):
+            x1 = transformed_anchor_boxes[sample_point_index][i][0]
+            y1 = transformed_anchor_boxes[sample_point_index][i][1]
+            x2 = transformed_anchor_boxes[sample_point_index][i][2]
+            y2 = transformed_anchor_boxes[sample_point_index][i][3]
+            center = centerPositions[sample_point_index]
+            cx = center.ravel()[0]
+            cy = center.ravel()[1]
+            width = x2 - x1
+            height = y2 - y1
 
-plt.xlim(-300, 900)
-plt.ylim(-300, 900)
-plt.show()
+            plt.plot(cx, cy, "o")
+            rect = plt.Rectangle([x1, y1], width, height, fill=None)
+            ax.add_patch(rect)
+
+    plt.xlim(-200, 900)
+    plt.ylim(-200, 900)
+    plt.show()
+
+
+run_shift_boxes()
