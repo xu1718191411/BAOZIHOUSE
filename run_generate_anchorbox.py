@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def generate_anchorbox(boxSize, scale, ratios):
     print(boxSize)
     print(scale)
@@ -38,7 +37,7 @@ TEST_RATIO = np.array([0.5, 1, 2])
 
 strides = [2 ** level for level in PYRAMID_LEVEL]
 boxSizeBaseSizes = [2 ** (level + 2) for level in PYRAMID_LEVEL]
-imageShape = (640, 586)
+imageShape = (640, 832)
 
 
 def shift_boxes(positionFixedAnchorBoxes, imageShape, stride, boxSizeBaseSize):
@@ -67,12 +66,42 @@ def shift_boxes(positionFixedAnchorBoxes, imageShape, stride, boxSizeBaseSize):
 
 
 idx = 0
-position_fixed_anchor_boxes = generate_anchorbox(boxSizeBaseSizes[0], TEST_SCALE, TEST_RATIO)
-centerPositions, res = shift_boxes(position_fixed_anchor_boxes, imageShape, strides[idx], boxSizeBaseSizes[idx])
+position_fixed_anchor_boxes = generate_anchorbox(boxSizeBaseSizes[idx], TEST_SCALE, TEST_RATIO)
+centerPositions, transformed_anchor_boxes = shift_boxes(position_fixed_anchor_boxes, imageShape, strides[idx],
+                                                        boxSizeBaseSizes[idx])
 
 x = centerPositions[:, :, 0].ravel()
 y = centerPositions[:, :, 1].ravel()
-plt.plot(x, y, "o",markersize=0.3)
+plt.plot(x, y, "o", markersize=0.3, markerfacecolor='black')
 plt.show()
 
-a = 1
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+totalFeatureBoxNum = centerPositions.shape[0]
+testPoint1 = int(totalFeatureBoxNum*(0.056))
+testPoint2 = int(totalFeatureBoxNum*(0.257))
+testPoint3 = int(totalFeatureBoxNum*(0.395))
+testPoint4 = int(totalFeatureBoxNum*(0.689))
+testPoint5 = int(totalFeatureBoxNum*(0.903))
+sample_anchor_points = [testPoint1,testPoint2,testPoint3,testPoint4,testPoint5]
+
+for sample_point_index in sample_anchor_points:
+    for i in range(9):
+        x1 = transformed_anchor_boxes[sample_point_index][i][0]
+        y1 = transformed_anchor_boxes[sample_point_index][i][1]
+        x2 = transformed_anchor_boxes[sample_point_index][i][2]
+        y2 = transformed_anchor_boxes[sample_point_index][i][3]
+        center = centerPositions[sample_point_index]
+        cx = center.ravel()[0]
+        cy = center.ravel()[1]
+        width = x2 - x1
+        height = y2 - y1
+
+        plt.plot(cx, cy, "o")
+        rect = plt.Rectangle([x1, y1], width, height, fill=None)
+        ax.add_patch(rect)
+
+plt.xlim(-300, 900)
+plt.ylim(-300, 900)
+plt.show()
