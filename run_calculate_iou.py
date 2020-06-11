@@ -17,6 +17,10 @@ def zhengze(annotations):
     result[:, 2] = maxX
     result[:, 3] = maxY
 
+    size = annotations.shape
+    if size[1] > 4:
+        result[:, 4:] = annotations[:, 4:]
+
     return result
 
 
@@ -49,8 +53,8 @@ def run_calculate_iou(anchorBox, targets):
         plt.plot(cx, cy, "o", "red")
         rect = plt.Rectangle([x1, y1], width, height, fill=True)
         ax.add_patch(rect)
-
-    plt.show()
+    #
+    # plt.show()
 
     calculateIOU(anchorBox, targets)
 
@@ -80,30 +84,49 @@ def calculateIOU(anchorBox, targets):
 
     targetArea = (cx3 - cx4) * (cy3 - cy4)
 
-    anchorBoxesArea = torch.unsqueeze(anchorBoxesArea,dim=1)
+    anchorBoxesArea = torch.unsqueeze(anchorBoxesArea, dim=1)
 
     unionArea = anchorBoxesArea + targetArea - innerArea
 
-    unionArea = torch.clamp(unionArea,min=1e-8)
-
+    unionArea = torch.clamp(unionArea, min=1e-8)
 
     iou = innerArea / unionArea
 
-    print(iou)
+    targetValue, targetIndex = torch.max(iou, dim=1)
+
+    negativeIndexes = torch.le(targetValue, 0.4)
+
+    classificationNum = 80
+    anchorBoxsNum = anchorBox.shape[0]
+
+    result = torch.ones((anchorBoxsNum, classificationNum))
+
+    result[negativeIndexes] = 0
+
+    positiveIndexes = torch.gt(targetValue, 0.5)
+
+    result[positiveIndexes] = 0
+
+    b = targets[targetIndex, :]
+    a = b[positiveIndexes, 4].long()
+    result[positiveIndexes, a] = 1
+
+    print(result)
 
 
 # cx1,cy1,cx2,cy2
 anchorBoxes = torch.Tensor([
     [25, 18, 43, 27],
-    [16, 2, 31, 17],
+    [18, 12, 33, 26],
     [31, 16, 3, 35],
-    [10, 25, 15, 21],
+    [10, 10, 15, 15],
+
 ])
 
 # cx1,cy1,cx2,cy2
 targetBoxes = torch.Tensor([
-    [20, 25, 35, 10],
-    [8, 5, 12, 26],
+    [20, 25, 35, 10, 5],
+    [11, 8, 15, 16, 23],
 ])
 
 run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
