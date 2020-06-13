@@ -54,7 +54,7 @@ def run_calculate_iou(anchorBox, targets):
         rect = plt.Rectangle([x1, y1], width, height, fill=True)
         ax.add_patch(rect)
     #
-    # plt.show()
+    plt.show()
 
     calculateIOU(anchorBox, targets)
 
@@ -92,41 +92,43 @@ def calculateIOU(anchorBox, targets):
 
     iou = innerArea / unionArea
 
-    targetValue, targetIndex = torch.max(iou, dim=1)
+    print(iou)
 
-    negativeIndexes = torch.le(targetValue, 0.4)
+    iouMaxValue, iouMaxIndexes = torch.max(iou, dim=1)
 
-    classificationNum = 80
+    negativeIndexes = torch.le(iouMaxValue, 0.4)
+
+    classificationNum = 10
     anchorBoxsNum = anchorBox.shape[0]
 
     result = torch.ones((anchorBoxsNum, classificationNum))
 
     result[negativeIndexes] = 0
 
-    positiveIndexes = torch.gt(targetValue, 0.5)
+    positiveIndexes = torch.gt(iouMaxValue, 0.5)
 
     result[positiveIndexes] = 0
 
-    b = targets[targetIndex, :]
-    a = b[positiveIndexes, 4].long()
-    result[positiveIndexes, a] = 1
-
+    anchorBoxTargets = targets[:][iouMaxIndexes]
+    # anchorBoxTargets = targets[iouMaxIndexes, :]
+    anchorBoxTargetsClassIndexes = anchorBoxTargets[positiveIndexes, 4].long() - 1
+    result[positiveIndexes, anchorBoxTargetsClassIndexes] = 1
     print(result)
+    return result
 
 
 # cx1,cy1,cx2,cy2
 anchorBoxes = torch.Tensor([
-    [25, 18, 43, 27],
-    [18, 12, 33, 26],
-    [31, 16, 3, 35],
-    [10, 10, 15, 15],
-
+    [1, 5, 17, 25],
+    [22, 3, 38, 15],
+    [4, 16, 22, 37],
+    [23, 23, 38, 35],
 ])
 
 # cx1,cy1,cx2,cy2
 targetBoxes = torch.Tensor([
-    [20, 25, 35, 10, 5],
-    [11, 8, 15, 16, 23],
+    [20, 15, 35, 3, 5],
+    [5, 3, 16, 30, 3],
 ])
 
 run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
