@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+from run_focal_loss import fun_focal_loss
+
 
 def zhengze(annotations):
     minX = torch.min(annotations[:, 0], annotations[:, 2])
@@ -56,7 +58,7 @@ def run_calculate_iou(anchorBox, targets):
     #
     plt.show()
 
-    calculateIOU(anchorBox, targets)
+    return calculateIOU(anchorBox, targets)
 
 
 def calculateIOU(anchorBox, targets):
@@ -113,7 +115,6 @@ def calculateIOU(anchorBox, targets):
     # anchorBoxTargets = targets[iouMaxIndexes, :]
     anchorBoxTargetsClassIndexes = anchorBoxTargets[positiveIndexes, 4].long() - 1
     result[positiveIndexes, anchorBoxTargetsClassIndexes] = 1
-    print(result)
     return result
 
 
@@ -131,4 +132,18 @@ targetBoxes = torch.Tensor([
     [5, 3, 16, 30, 3],
 ])
 
-run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
+teacher = run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
+
+classification = torch.Tensor([
+    [0.053,	0.2463,	0.753,	0.2352,	0.3413,	0.1234,	0.3253,	0.235,	0.235,	0.0023],
+    [0.235,	0.3435,	0.023,	0.0023,	0.7897,	0.23453,	0.5235,	0.5623,	0.3423,	0.3462],
+    [0.0023,	0.3452,	0.3423,	0.0023,	0.9235,	0.234,	0.0023,	0.1242,	0.0023,	0.1235],
+    [0.0023,	0.124,	0.0235,	0.1252,	0.03252,	0.0023,	0.2353,	0.2352,	0.135,	0.2352]
+])
+
+print(teacher)
+loss = fun_focal_loss(classification, teacher)
+print(loss)
+
+
+
