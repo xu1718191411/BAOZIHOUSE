@@ -1,8 +1,8 @@
-import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
 from run_focal_loss import fun_focal_loss
+from run_regression_loss import calculateRegressionLoss
 
 
 def zhengze(annotations):
@@ -115,7 +115,7 @@ def calculateIOU(anchorBox, targets):
     # anchorBoxTargets = targets[iouMaxIndexes, :]
     anchorBoxTargetsClassIndexes = anchorBoxTargets[positiveIndexes, 4].long() - 1
     result[positiveIndexes, anchorBoxTargetsClassIndexes] = 1
-    return result
+    return positiveIndexes, anchorBoxTargets, result
 
 
 # cx1,cy1,cx2,cy2
@@ -132,18 +132,32 @@ targetBoxes = torch.Tensor([
     [5, 3, 16, 30, 3],
 ])
 
-teacher = run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
-
 classification = torch.Tensor([
-    [0.053,	0.2463,	0.753,	0.2352,	0.3413,	0.1234,	0.3253,	0.235,	0.235,	0.0023],
-    [0.235,	0.3435,	0.023,	0.0023,	0.7897,	0.23453,	0.5235,	0.5623,	0.3423,	0.3462],
-    [0.0023,	0.3452,	0.3423,	0.0023,	0.9235,	0.234,	0.0023,	0.1242,	0.0023,	0.1235],
-    [0.0023,	0.124,	0.0235,	0.1252,	0.03252,	0.0023,	0.2353,	0.2352,	0.135,	0.2352]
+    [0.053, 0.2463, 0.753, 0.2352, 0.3413, 0.1234, 0.3253, 0.235, 0.235, 0.0023],
+    [0.235, 0.3435, 0.023, 0.0023, 0.7897, 0.23453, 0.5235, 0.5623, 0.3423, 0.3462],
+    [0.0023, 0.3452, 0.3423, 0.0023, 0.9235, 0.234, 0.0023, 0.1242, 0.0023, 0.1235],
+    [0.0023, 0.124, 0.0235, 0.1252, 0.03252, 0.0023, 0.2353, 0.2352, 0.135, 0.2352]
 ])
 
-print(teacher)
-loss = fun_focal_loss(classification, teacher)
-print(loss)
+regression = torch.Tensor([
+    [-0.0064, -0.0055, 0.095, 0.095],
+    [0.0030, -0.0043, -0.0095, 0.0018],
+    [0.0009, -0.0083, -0.0095, -0.0095],
+    [-0.0036, 0.0023, -0.0056, -0.0068],
+])
 
 
+def calculateLoss(anchorBoxes, targetBoxes, classification, regression):
+    positiveIndexes, anchorBoxsTargets, teacher = run_calculate_iou(zhengze(anchorBoxes), zhengze(targetBoxes))
+    focalLoss = fun_focal_loss(classification, teacher)
 
+    regressionLoss = calculateRegressionLoss(anchorBoxes, positiveIndexes.bool(), anchorBoxsTargets, regression)
+    print(focalLoss)
+    print(regressionLoss)
+
+    loss = focalLoss + regressionLoss
+
+    print(loss)
+
+
+calculateLoss(anchorBoxes, targetBoxes, classification, regression)

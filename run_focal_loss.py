@@ -49,5 +49,5 @@ def fun_focal_loss(classificition, teacher):
 #                         [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
 #
 # loss = fun_focal_loss(classification, teacher)
-#
+
 # print(loss)
