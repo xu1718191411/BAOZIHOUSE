@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from torchvision.ops import nms,box_iou
+from torchvision.ops import nms, box_iou
 import matplotlib.pyplot as plt
-
+import random
 
 PYRAMID_LEVEL = [3, 4, 5, 6, 7]
 
@@ -10,6 +10,23 @@ TEST_SCALE = np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)])
 TEST_RATIO = np.array([0.5, 1, 2])
 
 classNum = 10
+
+
+def clip_anchor_boxes(transformedAnchorBoxes, w, h):
+    print(transformedAnchorBoxes)
+
+    cx = transformedAnchorBoxes[:, :, 0]
+    cy = transformedAnchorBoxes[:, :, 1]
+    width = transformedAnchorBoxes[:, :, 2]
+    height = transformedAnchorBoxes[:, :, 3]
+
+    torch.clamp(cx, min=0)
+    torch.clamp(cy, min=0)
+    torch.clamp(width, max=w)
+    torch.clamp(height, max=h)
+
+    result = torch.stack((cx, cy, width, height), dim=2)
+    return result
 
 
 def anchor_box_transform_with_regression(anchorBoxes, regressions):
@@ -93,28 +110,34 @@ featureHeight = int((imageShape[0] + 0.5 * strides[idx]) / strides[idx])
 
 anchorBoxes = torch.from_numpy(anchorBoxes)
 
-classifications = torch.rand((featuresWidth * featureHeight, 9, classNum))
+classifications = torch.rand((featuresWidth * featureHeight, 9, classNum)) * 0.01
 
 regressions = torch.rand((featuresWidth * featureHeight, 9, 4))
 
 transformedAnchorBoxes = anchor_box_transform_with_regression(anchorBoxes, regressions)
 
+transformedAnchorBoxes = clip_anchor_boxes(transformedAnchorBoxes,imageShape[1],imageShape[0])
+
 anchorBoxes = transformedAnchorBoxes.view(-1, 4)
 classifications = classifications.view(-1, classNum)
+
+targetNum = 3
+targetFrequent = (featuresWidth * featureHeight * 9) // 3
+for i in range(featuresWidth * featureHeight * 9):
+    if i % targetFrequent == 0:
+        classifications[i] = 0.9423 + random.random()
+
 regressions = regressions.view(-1, 4)
 
-scores, storeIndexes = torch.max(classifications, dim=1)
+scores, scoreIndexes = torch.max(classifications, dim=1)
 
-validIndex = scores > 0.96
+validIndex = scores > 0.02
 
 anchorBoxes = anchorBoxes[validIndex]
-scoreIndexes = storeIndexes[validIndex]
+scoreIndexes = scoreIndexes[validIndex]
 scores = scores[validIndex].double()
 
-leftIndexes = nms(anchorBoxes, scores, iou_threshold=0.12)
-
-
-print(box_iou(anchorBoxes[leftIndexes],anchorBoxes[leftIndexes]))
+leftIndexes = nms(anchorBoxes, scores, iou_threshold=0.5)
 
 finalBoxes = anchorBoxes[leftIndexes]
 
@@ -122,7 +145,6 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 for box in finalBoxes:
-
     width = box[2]
     height = box[3]
     cx = box[0] - 0.5 * width
