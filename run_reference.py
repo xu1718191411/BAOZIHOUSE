@@ -13,8 +13,6 @@ classNum = 10
 
 
 def clip_anchor_boxes(transformedAnchorBoxes, w, h):
-    print(transformedAnchorBoxes)
-
     cx = transformedAnchorBoxes[:, :, 0]
     cy = transformedAnchorBoxes[:, :, 1]
     width = transformedAnchorBoxes[:, :, 2]
@@ -116,7 +114,7 @@ regressions = torch.rand((featuresWidth * featureHeight, 9, 4))
 
 transformedAnchorBoxes = anchor_box_transform_with_regression(anchorBoxes, regressions)
 
-transformedAnchorBoxes = clip_anchor_boxes(transformedAnchorBoxes,imageShape[1],imageShape[0])
+transformedAnchorBoxes = clip_anchor_boxes(transformedAnchorBoxes, imageShape[1], imageShape[0])
 
 anchorBoxes = transformedAnchorBoxes.view(-1, 4)
 classifications = classifications.view(-1, classNum)
@@ -125,33 +123,50 @@ targetNum = 3
 targetFrequent = (featuresWidth * featureHeight * 9) // 3
 for i in range(featuresWidth * featureHeight * 9):
     if i % targetFrequent == 0:
-        classifications[i] = 0.9423 + random.random()
+        classifications[i] = torch.rand((classifications[i].shape))
+
+    if i % 57 == 0:
+        classifications[i] = torch.rand((classifications[i].shape))
 
 regressions = regressions.view(-1, 4)
 
-scores, scoreIndexes = torch.max(classifications, dim=1)
+finalResult = []
+for i in range(classNum):
+    scores = classifications[:, i]
+    scoreMask = scores > 0.02
 
-validIndex = scores > 0.02
+    anchorBoxIndexes = nms(anchorBoxes[scoreMask], scores[scoreMask].double(), 0.5)
 
-anchorBoxes = anchorBoxes[validIndex]
-scoreIndexes = scoreIndexes[validIndex]
-scores = scores[validIndex].double()
+    resLocations = anchorBoxes[scoreMask][anchorBoxIndexes].double()
+    resScores = scores[scoreMask][anchorBoxIndexes].double()
 
-leftIndexes = nms(anchorBoxes, scores, iou_threshold=0.5)
+    resScores = torch.unsqueeze(resScores, dim=1)
 
-finalBoxes = anchorBoxes[leftIndexes]
+    result = torch.cat((resLocations, resScores), dim=1)
+
+    classTensor = torch.zeros((result.shape[0], 1))
+    classTensor[:, 0] = i
+
+    result = torch.cat((result, classTensor.double()), dim=1)
+
+    finalResult.append(result)
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-for box in finalBoxes:
-    width = box[2]
-    height = box[3]
-    cx = box[0] - 0.5 * width
-    cy = box[1] - 0.5 * height
+for classWrapper in finalResult:
+    for box in classWrapper:
+        if box[4] < 0.5:
+            continue
 
-    rect = plt.Rectangle([cx, cy], width, height, fill=None)
-    ax.add_patch(rect)
+        width = box[2]
+        height = box[3]
+        cx = box[0] - 0.5 * width
+        cy = box[1] - 0.5 * height
+        rect = plt.Rectangle([cx, cy], width, height, fill=None)
+        ax.add_patch(rect)
+
+        ax.text(box[0].int(), box[1].int(), str(int(box[5])))
 
 plt.xlim(-1200, 1900)
 plt.ylim(-1200, 1900)
