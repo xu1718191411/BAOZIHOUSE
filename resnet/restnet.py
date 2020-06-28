@@ -1,9 +1,9 @@
 import torch
 import torchvision
 
-net = torchvision.models.resnet50()
-
-print(net)
+# net = torchvision.models.resnet50()
+#
+# print(net)
 
 class RestNet50(torch.nn.Module):
     def __init__(self):
@@ -103,10 +103,10 @@ class Bottleneck(torch.nn.Module):
         return out
 
 
-net2 = RestNet50().cuda()
-input = torch.rand((1, 3, 640, 608)).cuda()
-input = input / 255.0
-input = input.float()
-output = net2(input)
-print("output is ....")
-print(output)
+# net2 = RestNet50().cuda()
+# input = torch.rand((1, 3, 640, 608)).cuda()
+# input = input / 255.0
+# input = input.float()
+# output = net2(input)
+# print("output is ....")
+# print(output)

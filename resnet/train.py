@@ -1,80 +1,61 @@
-import os
-import numpy as np
+from resnet.dataset import WeaponDataset
+from resnet.image_transform import ImageTransform
+from resnet.make_data_path import make_data_path
+from resnet.restnet import RestNet50
 import torch
+from torch.utils.data import DataLoader
+import torch.optim as optim
 import torch.nn as nn
-import torch.optim as optimizers
-from torch.utils.data import dataloader
-import torchvision
-import torchvision.transforms as transforms
-from sklearn.metrics import accuracy_score
 
-from resnet.net import resnet50
+trainPath = "/home/xuzhongwei/Source/Machine_Learning_Project/resnet/data/train"
+valPath = "/home/xuzhongwei/Source/Machine_Learning_Project/resnet/data/val"
+categories = ["tank", "jet"]
 
-if __name__ == '__main__':
-    np.random.seed(1234)
-    torch.manual_seed(1234)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    #
-    # root = os.path.join(os.path.dirname(__file__), '..', 'data', "fashion_minist")
-    # transform = transforms.Compose([transforms.ToTensor()])
-    #
-    # mnist_train = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=True)
-    #
-    # mnist_test = torchvision.datasets.FashionMNIST(root=root, transform=transform, download=True, train=False)
-    #
-    # train_data_loader = dataloader.DataLoader(mnist_train, shuffle=True, batch_size=100)
-    # test_data_loader = dataloader.DataLoader(mnist_test, shuffle=True, batch_size=100)
+trainData, valData = make_data_path(trainPath, valPath, categories)
 
-    path = os.path.dirname(__file__)
-    root = os.path.join(path, "..", "data", "cifar100")
-    transform = transforms.Compose([transforms.ToTensor()])
+transform = ImageTransform(224, (0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+trainDataset = WeaponDataset(trainData, transform, "train")
 
-    train_data_set = torchvision.datasets.CIFAR100(root=root, train=True, download=True, transform=transform)
+valDataset = WeaponDataset(valData, transform, "val")
 
-    test_data_set = torchvision.datasets.CIFAR100(root=root, train=False, download=True, transform=transform)
+print(trainDataset.__len__())
+print(valDataset.__len__())
 
-    train_data_loader = dataloader.DataLoader(train_data_set, shuffle=True, batch_size=100)
-    test_data_loader = dataloader.DataLoader(test_data_set, shuffle=True, batch_size=100)
+dataloader = DataLoader(dataset=trainDataset, shuffle=True, batch_size=1)
 
-    model = resnet50().to(device)
+dataiter = iter(dataloader)
+image, category = dataiter.next()
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optimizers.SGD(model.parameters(), lr=1e-4)
+model = RestNet50().cuda()
 
-    epoch = 50
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-    for i in range(epoch):
-        print("epoch {}".format(i + 1))
-        train_loss = 0
-        test_loss = 0
-        test_acc = 0
-        for x, t in train_data_loader:
-            x, t = x.to(device), t.to(device)
-            model.train()
-            preds = model(x)
-            loss = criterion(preds, t)
-            train_loss = train_loss + loss.item()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-        print(train_loss/train_data_loader.__len__())
+epochNum = 15
+for i in range(epochNum):
+    epochLoss = 0
+    for image, category in dataloader:
+        image = image.cuda()
+        output = model(image)
+        category = category.cuda()
+        optimizer.zero_grad()
+        loss = criterion(output, category)
+        epochLoss += loss.item()
+        loss.backward()
+        optimizer.step()
 
-        for x, t in test_data_loader:
-            x, t = x.to(device), t.to(device)
-            model.eval()
-            preds = model(x)
-            loss = criterion(preds, t)
-            test_loss = test_loss + loss.item()
-
-            a1 = torch.argmax(preds,dim=1)
-            # _,a1 = preds.max(dim=1)
-            s = a1.eq(t).sum()
-            # s = torch.sum(s)
-            test_acc += s
-
-        test_loss = test_loss / len(test_data_loader)
-        test_acc = test_acc / len(test_data_loader)
-        print("Epoch {}, valid cost {:.3f}, valid acc {:.3f}".format(i, test_loss, test_acc))
+    print("epoch {} total loss: {}".format(i, epochLoss / dataloader.dataset.__len__()))
 
 
-        torch.save(model.state_dict(),"./trainning_result/epoch_{}.pth".format(i+1))
+valDataloader = DataLoader(dataset=valDataset, shuffle=True, batch_size=1)
+total = 0
+with torch.no_grad():
+    for image, category in valDataloader:
+        image = image.cuda()
+        output = model(image)
+        print(output)
+        category = category.cuda()
+
+        total += ((torch.argmax(output,dim=1) == category).sum().item())
+
+print("precise : {}".format(total / len(valData)))
