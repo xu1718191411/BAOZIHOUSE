@@ -22,4 +22,7 @@ class WeaponDataset(data.Dataset):
         imageInfo = self.filePaths[image_index]
         path = imageInfo['filepath']
         category = imageInfo['category']
-        return Image.open(path), category
+        image = Image.open(path)
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+        return image, category

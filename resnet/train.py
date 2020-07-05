@@ -25,6 +25,7 @@ dataloader = DataLoader(dataset=trainDataset, shuffle=True, batch_size=1, collat
 # image, category = dataiter.next()
 
 model = RestNet50().cuda()
+print(model)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
