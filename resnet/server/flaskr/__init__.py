@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append("/home/xuzhongwei/Source/Machine_Learning_Project")
+# sys.path.append("/home/xuzhongwei/Source/Machine_Learning_Project")
 from resnet.server.flaskr.index import run_process_result, index_router
 from flask import Flask
 
